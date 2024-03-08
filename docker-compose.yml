@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  nginx:
+    container_name: nginx_master
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "8080:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx:/etc/nginx/conf.d
+      - /etc/letsencrypt/live/thibault-peronno.fr/fullchain.pem:/etc/nginx/ssl/fullchain.pem
+      - /etc/letsencrypt/live/thibault-peronno.fr/privkey.pem:/etc/nginx/ssl/privkey.pem
+      - web_to_do_list_dist_volume:/var/www/html/interface-to-do-list
+    networks:
+      - to_do_list_default
+      - web_to_do_list_default
+      - server-projet-botanik_default
+    command: [nginx-debug, '-g', 'daemon off;']
+
+networks:
+  to_do_list_default:
+    external: true
+  web_to_do_list_default:
+    external: true
+  server-projet-botanik_default:
+    external: true
+volumes:
+ web_to_do_list_dist_volume:
+    external: true
