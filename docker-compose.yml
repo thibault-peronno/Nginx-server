@@ -7,8 +7,10 @@ services:
     ports:
       - "8080:80"
       - "443:443"
+    # command: /bin/sh -c "mkdir -p /etc/nginx/ssl/ && apk add screen nginx && screen -d -m nginx -g 'daemon on;'"
     volumes:
-      - ./config/nginx:/etc/nginx/conf.d
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/nginx/servers-nginx.conf:/etc/nginx/conf.d/servers-nginx.conf
       - /etc/letsencrypt/live/thibault-peronno.fr/fullchain.pem:/etc/nginx/ssl/fullchain.pem
       - /etc/letsencrypt/live/thibault-peronno.fr/privkey.pem:/etc/nginx/ssl/privkey.pem
       - web_to_do_list_dist_volume:/var/www/html/interface-to-do-list
@@ -16,8 +18,8 @@ services:
       - to_do_list_default
       - web_to_do_list_default
       - server-projet-botanik_default
-    command: [nginx-debug, '-g', 'daemon off;']
-
+    # command: /bin/sh -c "mkdir -p /etc/ssl/ && nginx -g 'daemon off;'"
+    
 networks:
   to_do_list_default:
     external: true
@@ -26,5 +28,9 @@ networks:
   server-projet-botanik_default:
     external: true
 volumes:
- web_to_do_list_dist_volume:
+  web_to_do_list_dist_volume:
     external: true
+
+# Make sure all paths are correct and accessible
+# Set the correct permissions if running into issues, e.g., sudo chown -R $USER:$USER /path/to/volume
+# Check SELinux settings if running into permission issues on AlmaLinux
