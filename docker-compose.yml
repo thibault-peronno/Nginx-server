@@ -19,7 +19,11 @@ services:
       - web_to_do_list_default
       - server-projet-botanik_default
     # command: /bin/sh -c "mkdir -p /etc/ssl/ && nginx -g 'daemon off;'"
-    
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - ./certbot/www/:/var/www/certbot/:rw
+      - ./certbot/conf/:/etc/letsencrypt/:rw
 networks:
   to_do_list_default:
     external: true
