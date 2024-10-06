@@ -15,21 +15,63 @@ services:
       - /etc/letsencrypt/live/thibault-peronno.fr/privkey.pem:/etc/nginx/ssl/privkey.pem
       - web_to_do_list_dist_volume:/var/www/html/interface-to-do-list
     networks:
-      - to_do_list_default
-      - web_to_do_list_default
-      - server-projet-botanik_default
+      - project_thibault_network
+      # - to_do_list_default
+      # - web_to_do_list_default
+      # - server-projet-botanik_default
     # command: /bin/sh -c "mkdir -p /etc/ssl/ && nginx -g 'daemon off;'"
-    
-networks:
-  to_do_list_default:
-    external: true
-  web_to_do_list_default:
-    external: true
-  server-projet-botanik_default:
-    external: true
+  mysqldb:
+    container_name: mysql
+    env_file:
+      - path: .env
+        required: true # default
+    image: mysql:8.0.35
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval:  10s
+      timeout:  5s
+      retries:  5
+    restart: always
+    environment:
+      - MYSQL_ROOT_USER={USER_ROOT}
+      - MYSQL_ROOT_PASSWORD=${DBROOT}
+      - MYSQL_DATABASE=${DATABASE_MYSQL}
+      - MYSQL_USER=${USER_MYSQL}
+      - MYSQL_PASSWORD=${PASSWORD_MYSQL}
+    ports:
+      - "3306"
+    volumes:
+      - ./to_do_list.sql:/docker-entrypoint-initdb.d/1.sql
+      - db_data:/var/lib/mysql
+  # service Adminer
+  adminer:
+    container_name: adminer
+    image: adminer
+    restart: always
+    environment:  
+      ADMINER_DEFAULT_SERVER: mysqldb
+    ports:
+      - "8082:8080"
+    depends_on:
+      - mysqldb
+    env_file:
+      - .envs
 volumes:
-  web_to_do_list_dist_volume:
-    external: true
+  db_data: {}
+networks:
+  projet_thibault_network:
+    driver: bridge
+    
+# networks:
+#   to_do_list_default:
+#     external: true
+#   web_to_do_list_default:
+#     external: true
+#   server-projet-botanik_default:
+#     external: true
+# volumes:
+#   web_to_do_list_dist_volume:
+#     external: true
 
 # Make sure all paths are correct and accessible
 # Set the correct permissions if running into issues, e.g., sudo chown -R $USER:$USER /path/to/volume
