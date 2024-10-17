@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 services:
   nginx:
     container_name: nginx_master
@@ -11,15 +11,30 @@ services:
     volumes:
       - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./config/nginx/servers-nginx.conf:/etc/nginx/conf.d/servers-nginx.conf
-      - /etc/letsencrypt/live/thibault-peronno.fr/fullchain.pem:/etc/nginx/ssl/fullchain.pem
-      - /etc/letsencrypt/live/thibault-peronno.fr/privkey.pem:/etc/nginx/ssl/privkey.pem
+      - ./certs:/etc/letsencrypt
+      - /var/run/docker.sock:/tmp/docker.sock
+      # - /etc/letsencrypt/live/thibault-peronno.fr/fullchain.pem:/etc/nginx/ssl/fullchain.pem
+      # - /etc/letsencrypt/live/thibault-peronno.fr/privkey.pem:/etc/nginx/ssl/privkey.pem
       - web_to_do_list_dist_volume:/var/www/html/interface-to-do-list
     networks:
-      - project_thibault_network
+      - projects_thibault_network
       # - to_do_list_default
       # - web_to_do_list_default
       # - server-projet-botanik_default
     # command: /bin/sh -c "mkdir -p /etc/ssl/ && nginx -g 'daemon off;'"
+    command: >
+      /bin/sh -c 'while :; do sleep 6h & wait $${PID}; nginx -g "daemon off;" & certbot renew -q; done'
+    depends_on:
+      - certbot
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certs:/etc/letsencrypt
+      - /var/www/html:/var/www/html
+    command: certonly --webroot --webroot-path=/var/www/html --email thibault.peronno.dev.pro@gmail.com --agree-tos --no-eff-mail --staple-ocsp --must-staple --expand --force-renewal --domain thibault-peronno.fr,*.thibault-peronno.fr
+    restart: unless-stopped
+    networks:
+      - projects_thibault_network
   mysqldb:
     container_name: mysql
     env_file:
@@ -28,9 +43,9 @@ services:
     image: mysql:8.0.35
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval:  10s
-      timeout:  5s
-      retries:  5
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: always
     environment:
       - MYSQL_ROOT_USER={USER_ROOT}
@@ -43,34 +58,36 @@ services:
     volumes:
       - ./to_do_list.sql:/docker-entrypoint-initdb.d/1.sql
       - db_data:/var/lib/mysql
+    networks:
+      - projects_thibault_network
   # service Adminer
   adminer:
     container_name: adminer
     image: adminer
     restart: always
-    environment:  
+    environment:
       ADMINER_DEFAULT_SERVER: mysqldb
     ports:
       - "8082:8080"
     depends_on:
       - mysqldb
     env_file:
-      - .envs
+      - .env
+    networks:
+      - projects_thibault_network
 volumes:
   db_data: {}
+  web_to_do_list_dist_volume:
+    external: true
 networks:
-  projet_thibault_network:
+  projects_thibault_network:
     driver: bridge
-    
 # networks:
 #   to_do_list_default:
 #     external: true
 #   web_to_do_list_default:
 #     external: true
 #   server-projet-botanik_default:
-#     external: true
-# volumes:
-#   web_to_do_list_dist_volume:
 #     external: true
 
 # Make sure all paths are correct and accessible
